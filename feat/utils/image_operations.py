@@ -1222,46 +1222,38 @@ def inverse_transform_landmarks_torch(landmarks, boxes):
 
     return transformed_landmarks.reshape(N, N_landmarks)
 
-
-def extract_hog_features(extracted_faces, landmarks):
+import uuid
+def extract_hog_features(extracted_faces, landmarks, debug_dir="/tmp/au_debug"):
     """
     Computes HOG features from extracted face regions and returns updated landmarks.
-    Inputs:
-        extracted_faces: torch.Tensor of shape (1, 3, H, W) - raw RGB image tensor (e.g., 1024x1024)
-        landmarks: torch.Tensor of shape (1, 68*2) - flattened landmark coordinates
-    Outputs:
-        hog_features: np.ndarray of shape (1, 5408) - concatenated HOG vector
-        updated_landmarks: np.ndarray of shape (1, 68, 2) - updated landmarks used for AU detection
+    Also saves a debug image to visualize the input with landmarks.
     """
     import matplotlib.pyplot as plt
     import numpy as np
     import cv2
 
-    # Print input types and shapes
     print("[extract_hog_features] Input image tensor:")
     print("  type:", type(extracted_faces), "shape:", extracted_faces.shape, "dtype:", extracted_faces.dtype)
 
     print("[extract_hog_features] Input landmarks:")
     print("  type:", type(landmarks), "shape:", landmarks.shape, "dtype:", landmarks.dtype)
 
+    os.makedirs(debug_dir, exist_ok=True)
+
     # Convert image tensor to numpy (H, W, C)
-    img_np = extracted_faces.squeeze(0).permute(1, 2, 0).cpu().numpy()  # (H, W, 3)
+    img_np = extracted_faces.squeeze(0).permute(1, 2, 0).cpu().numpy()
     img_np = np.clip(img_np, 0, 255).astype(np.uint8)
 
-    # Convert landmarks to numpy and reshape
-    lm_np = landmarks.cpu().numpy().reshape(-1, 2)  # (68, 2)
-
-    # Overlay landmarks
+    # Convert landmarks
+    lm_np = landmarks.cpu().numpy().reshape(-1, 2)
     img_debug = img_np.copy()
+
     for (x, y) in lm_np.astype(int):
         cv2.circle(img_debug, (x, y), radius=2, color=(255, 0, 0), thickness=-1)
 
-    # Show image with landmarks
-    plt.figure(figsize=(5, 5))
-    plt.imshow(img_debug)
-    plt.title("Extracted Face + Landmarks")
-    plt.axis("off")
-    plt.show()
+    out_path = os.path.join(debug_dir, f"{uuid.uuid4().hex[:8]}.jpg")
+    cv2.imwrite(out_path, cv2.cvtColor(img_debug, cv2.COLOR_RGB2BGR))
+    print(f"[extract_hog_features] Debug image saved to {out_path}")
 
     n_faces = landmarks.shape[0]
     face_size = extracted_faces.shape[-1]
