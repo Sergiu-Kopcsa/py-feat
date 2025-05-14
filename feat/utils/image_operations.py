@@ -1225,16 +1225,22 @@ def inverse_transform_landmarks_torch(landmarks, boxes):
 
 def extract_hog_features(extracted_faces, landmarks):
     """
-    Helper function used in batch processing hog features
-
-    Args:
-        frames: a batch of extracted faces
-        landmarks: a list of list of detected landmarks
-
-    Returns:
-        hog_features: a numpy array of hog features for each detected landmark
-        landmarks: updated landmarks
+    Computes HOG features from extracted face regions and returns updated landmarks.
+    Inputs:
+        extracted_faces: torch.Tensor of shape (1, 3, H, W) - raw RGB image tensor (e.g., 1024x1024)
+        landmarks: torch.Tensor of shape (1, 68*2) - flattened landmark coordinates
+    Outputs:
+        hog_features: np.ndarray of shape (1, 5408) - concatenated HOG vector
+        updated_landmarks: np.ndarray of shape (1, 68, 2) - updated landmarks used for AU detection
     """
+    # Print input types and shapes
+    print("[extract_hog_features] Input image tensor:")
+    print("  type:", type(extracted_faces), "shape:", extracted_faces.shape, "dtype:", extracted_faces.dtype)
+
+    print("[extract_hog_features] Input landmarks:")
+    print("  type:", type(landmarks), "shape:", landmarks.shape, "dtype:", landmarks.dtype)
+    print("  Sample (first 5 landmarks):", landmarks.view(68, 2)[:5])
+
     n_faces = landmarks.shape[0]
     face_size = extracted_faces.shape[-1]
     extracted_faces_bboxes = (
