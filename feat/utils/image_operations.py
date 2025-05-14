@@ -1233,13 +1233,35 @@ def extract_hog_features(extracted_faces, landmarks):
         hog_features: np.ndarray of shape (1, 5408) - concatenated HOG vector
         updated_landmarks: np.ndarray of shape (1, 68, 2) - updated landmarks used for AU detection
     """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import cv2
+
     # Print input types and shapes
     print("[extract_hog_features] Input image tensor:")
     print("  type:", type(extracted_faces), "shape:", extracted_faces.shape, "dtype:", extracted_faces.dtype)
 
     print("[extract_hog_features] Input landmarks:")
     print("  type:", type(landmarks), "shape:", landmarks.shape, "dtype:", landmarks.dtype)
-    print("  Sample (first 5 landmarks):", landmarks.view(68, 2)[:5])
+
+    # Convert image tensor to numpy (H, W, C)
+    img_np = extracted_faces.squeeze(0).permute(1, 2, 0).cpu().numpy()  # (H, W, 3)
+    img_np = np.clip(img_np, 0, 255).astype(np.uint8)
+
+    # Convert landmarks to numpy and reshape
+    lm_np = landmarks.cpu().numpy().reshape(-1, 2)  # (68, 2)
+
+    # Overlay landmarks
+    img_debug = img_np.copy()
+    for (x, y) in lm_np.astype(int):
+        cv2.circle(img_debug, (x, y), radius=2, color=(255, 0, 0), thickness=-1)
+
+    # Show image with landmarks
+    plt.figure(figsize=(5, 5))
+    plt.imshow(img_debug)
+    plt.title("Extracted Face + Landmarks")
+    plt.axis("off")
+    plt.show()
 
     n_faces = landmarks.shape[0]
     face_size = extracted_faces.shape[-1]
