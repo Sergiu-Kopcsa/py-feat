@@ -141,6 +141,26 @@ class XGBClassifier:
             return np.concatenate((transformed_frame, landmarks), axis=1)
 
     def detect_au(self, frame, landmarks):
+        """
+        Note: frame is the HOG features matrix
+        """
+        print("========== [DEBUG] detect_au() input ==========")
+        print(f"[HOG] frame type: {type(frame)}")
+        print(f"[HOG] shape: {frame.shape}")
+        print(f"[HOG] dtype: {frame.dtype}")
+        print(f"[HOG] sample: {frame[0, :5]}")
+
+        if isinstance(landmarks, list):
+            print(f"[Landmarks] type: list of length {len(landmarks)}")
+            if len(landmarks) > 0:
+                print(f"[Landmarks[0]] shape: {np.array(landmarks[0]).shape}")
+                print(f"[Landmarks[0]] dtype: {np.array(landmarks[0]).dtype}")
+                print(f"[Landmarks[0]] sample: {np.array(landmarks[0])[:5]}")
+        else:
+            print(f"[Landmarks] type: {type(landmarks)}")
+            print(f"[Landmarks] value: {landmarks}")
+
+        print("===============================================\n")
         if not self.weights_loaded:
             raise ValueError("Need to load weights before running detect_au")
         else:
