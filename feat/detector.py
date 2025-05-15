@@ -140,6 +140,8 @@ class Detector(object):
             **kwargs,
         )
 
+        self.__frame_no = 0
+
     def __repr__(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}(face_model={self.info['face_model']}, landmark_model={self.info['landmark_model']}, au_model={self.info['au_model']}, emotion_model={self.info['emotion_model']}, facepose_model={self.info['facepose_model']}, identity_model={self.info['identity_model']})"
 
@@ -532,7 +534,7 @@ class Detector(object):
 
         return output
 
-    def detect_aus(self, frame, landmarks, frame_no=None, output_path=None, **au_model_kwargs):
+    def detect_aus(self, frame, landmarks, frame_no=None, output_path="/media/sergiukopcsa/Work/Benchmarks/au_calculations/landmarks/full_py_feat", **au_model_kwargs):
         """Detect Action Units from image or video frame, with optional debug image export.
 
         Args:
@@ -561,7 +563,11 @@ class Detector(object):
             )
 
             # === Render debug output if requested ===
-            if frame_no is not None and output_path is not None:
+            if output_path is not None:
+                if frame_no is None:
+                    frame_no = self.__frame_no
+                    self.__frame_no = self.__frame_no + 1
+                    
                 os.makedirs(output_path, exist_ok=True)
                 for i, faces in enumerate(new_landmarks):
                     for j, lm in enumerate(faces):
