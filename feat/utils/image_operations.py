@@ -150,7 +150,7 @@ def extract_face_from_landmarks(frame, landmarks, face_size=112):
     return (masked_image, new_landmarks)
 
 
-def extract_face_from_bbox(frame, detected_faces, face_size=112, expand_bbox=1.2):
+def extract_face_from_bbox(frame, detected_faces, face_size=112, expand_bbox=1):
     """Extract face from image and resize
 
     Args:
