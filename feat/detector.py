@@ -532,45 +532,70 @@ class Detector(object):
 
         return output
 
-    def detect_aus(self, frame, landmarks, **au_model_kwargs):
-        """Detect Action Units from image or video frame
+    def detect_aus(self, frame, landmarks, frame_no=None, output_path=None, **au_model_kwargs):
+        """Detect Action Units from image or video frame, with optional debug image export.
 
         Args:
             frame (np.ndarray): image loaded in array format (n, m, 3)
             landmarks (array): 68 landmarks used to localize face.
+            frame_no (int, optional): Frame number used for debug image filename.
+            output_path (Path or str, optional): If set, will save images with landmarks overlaid.
 
         Returns:
             array: Action Unit predictions
-
-        Examples:
-            >>> from feat import Detector
-            >>> from feat.utils import read_pictures
-            >>> frame = read_pictures(['my_image.jpg'])
-            >>> detector = Detector()
-            >>> detector.detect_aus(frame)
         """
+        import os
+        from PIL import Image, ImageDraw
+        import numpy as np
+        from torchvision.transforms import ToPILImage
 
         logging.info("detecting aus...")
         frame = convert_image_to_tensor(frame, img_type="float32")
 
         if is_list_of_lists_empty(landmarks):
             return landmarks
-        else:
-            if self["au_model"].lower() in ["svm", "xgb"]:
-                # transform = Grayscale(3)
-                # frame = transform(frame)
-                hog_features, new_landmarks = self._batch_hog(
-                    frames=frame, landmarks=landmarks
-                )
-                au_predictions = self.au_model.detect_au(
-                    frame=hog_features, landmarks=new_landmarks, **au_model_kwargs
-                )
-            else:
-                au_predictions = self.au_model.detect_au(
-                    frame, landmarks=landmarks, **au_model_kwargs
-                )
 
-            return self._convert_detector_output(landmarks, au_predictions)
+        if self["au_model"].lower() in ["svm", "xgb"]:
+            hog_features, new_landmarks = self._batch_hog(
+                frames=frame, landmarks=landmarks
+            )
+
+            # === Render debug output if requested ===
+            if frame_no is not None and output_path is not None:
+                os.makedirs(output_path, exist_ok=True)
+                for i, faces in enumerate(new_landmarks):
+                    for j, lm in enumerate(faces):
+                        if lm is None or lm.shape != (68, 2):
+                            continue
+
+                        # Get 112x112 face from HOG frame (i-th image in batch)
+                        face_img = frame[i].cpu().numpy().transpose(1, 2, 0)  # C,H,W → H,W,C
+                        face_img = (face_img * 255).astype(np.uint8)
+                        pil = Image.fromarray(face_img).convert("RGB").resize((112, 112))
+
+                        draw = ImageDraw.Draw(pil)
+                        for (x, y) in lm:
+                            draw.ellipse((x - 1, y - 1, x + 1, y + 1), fill=(0, 255, 0))
+
+                        if len(faces) == 1:
+                            fname = f"img.{frame_no:05d}.png"
+                        else:
+                            fname = f"img{j+1}.{frame_no:05d}.png"
+
+                        pil.save(os.path.join(output_path, fname))
+                        logging.info(f"Saved debug face: {fname}")
+
+            au_predictions = self.au_model.detect_au(
+                frame=hog_features, landmarks=new_landmarks, **au_model_kwargs
+            )
+
+        else:
+            au_predictions = self.au_model.detect_au(
+                frame, landmarks=landmarks, **au_model_kwargs
+            )
+
+        return self._convert_detector_output(landmarks, au_predictions)
+
 
     def _batch_hog(self, frames, landmarks):
         """
